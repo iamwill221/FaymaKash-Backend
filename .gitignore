@@ -1,0 +1,63 @@
+# Python
+*.py[cod]
+__pycache__/
+*.so
+.Python
+env/
+venv/
+.env
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.pot
+*.pyc
+.coverage
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Backup files
+*.bak
+*.tmp
+
+# Database
+*.sqlite3
+*.db
+
+# Secret keys and sensitive data
+*.pem
+*.key
+secrets.json

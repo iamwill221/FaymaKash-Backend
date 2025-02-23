@@ -1,0 +1,65 @@
+<!-- base.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Fayma Kash{% endblock %}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+
+        .container {
+            text-align: center;
+            background: #ffffff;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: {% block header_color %}#333{% endblock %};
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        a {
+            display: inline-block;
+            text-decoration: none;
+            background-color: {% block button_color %}#1e88e5{% endblock %};
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        a:hover {
+            background-color: {% block button_hover_color %}#1565c0{% endblock %};
+        }
+
+        .logo {
+            max-width: 180px; /* Ajustez la taille du logo selon vos besoins */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Ajoutez le logo ici -->
+        <img src="{% static 'images/logo.png' %}" alt="Faymakash Logo" class="logo">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
