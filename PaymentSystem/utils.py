@@ -7,13 +7,16 @@ from FaymaKashProject import settings
 
 # Function to send OTP via Twilio Verify
 def send_otp_via_twilio(phone_number):
+    # Convert PhoneNumber object to string if it's not already
+    phone_str = str(phone_number)
+    
     client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-
-    # Start the verification process
-    verification = client.verify.v2.services(settings.TWILIO_VERIFY_SERVICE_SID) \
-        .verifications.create(to=phone_number, channel='sms')
-
-    return verification.sid  # Return the verification SID for tracking the process
+    verification = client.verify \
+        .v2 \
+        .services(settings.TWILIO_VERIFY_SERVICE_SID) \
+        .verifications.create(to=phone_str, channel='sms')
+    
+    return verification.status # Return the verification SID for tracking the process
 
 
 # Function to check the OTP entered by the user
