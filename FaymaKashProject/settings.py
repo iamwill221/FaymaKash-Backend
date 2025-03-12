@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 from pathlib import Path
 from datetime import timedelta
+import sys
+import dj_database_url
 
 load_dotenv()
 
@@ -94,6 +96,22 @@ DATABASES = {
         'PORT': os.getenv('DATABASE_PORT'),
     }
 }
+
+DEBUG = os.getenv("DEBUG", "False") == "True"
+
+if DEBUG is True:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        }
+    }
+elif len(sys.argv) > 0 and sys.argv[1] != 'collectstatic':
+    if os.getenv("DATABASE_URL", None) is None:
+        raise Exception("DATABASE_URL environment variable not defined")
+    DATABASES = {
+        "default": dj_database_url.parse(os.environ.get("DATABASE_URL")),
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -200,4 +218,4 @@ DEXCHANGE_SUCCESS_URL = f"{BASE_DOMAIN}/api/transactions/success/"
 DEXCHANGE_FAILURE_URL = f"{BASE_DOMAIN}/apitransactions/failure/"
 
 SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = os.getenv('DEBUG') == 'True'
+
