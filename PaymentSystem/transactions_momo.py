@@ -151,6 +151,13 @@ class DexchangeAPI:
                 return transaction_data
 
             except RequestException as e:
+                #Debug on server
+                error_message = str(e)
+                if hasattr(e, 'response') and e.response:
+                    error_message += f" - Response: {e.response.text}"
+                logger.error(f"Transaction failed: {error_message}")
+                # End of debug on server
+
                 logger.error(f"Attempt {attempt + 1}/{self.MAX_RETRIES} failed: {str(e)}")
                 if attempt == self.MAX_RETRIES - 1:
                     logger.error(f"Transaction {external_transaction_id} failed after all retries")
