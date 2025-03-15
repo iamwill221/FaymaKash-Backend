@@ -2,7 +2,7 @@
 
 A Django-based NFC payment processing system with Twilio SMS verification and Dexchange integration for secure transactions.
 
-![logo.png](static%2Fimages%2Flogo.png)
+<img src="static/images/logo.png" alt="logo" width="200"/>
 
 
 ## Prerequisites
