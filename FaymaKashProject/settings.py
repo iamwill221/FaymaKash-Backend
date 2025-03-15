@@ -215,7 +215,7 @@ if not BASE_DOMAIN:
 
 DEXCHANGE_CALLBACK_URL = f"{BASE_DOMAIN}/api/transactions/callback/dexchange/"
 DEXCHANGE_SUCCESS_URL = f"{BASE_DOMAIN}/api/transactions/success/"
-DEXCHANGE_FAILURE_URL = f"{BASE_DOMAIN}/apitransactions/failure/"
+DEXCHANGE_FAILURE_URL = f"{BASE_DOMAIN}/api/transactions/failure/"
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 

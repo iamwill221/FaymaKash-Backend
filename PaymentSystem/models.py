@@ -34,7 +34,7 @@ class TransactionType(models.TextChoices):
 class TransactionStatus(models.TextChoices):
     PENDING = 'pending', 'En attente'
     PROCESSING = 'processing', 'En cours'
-    COMPLETED = 'completed', 'Terminé'
+    COMPLETED = 'success', 'Terminé'
     FAILED = 'failed', 'Échoué'
 
 

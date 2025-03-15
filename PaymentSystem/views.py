@@ -318,7 +318,7 @@ class DexchangeCallbackView(APIView):
 
         # Extract fields from the request data
         transaction_id = data.get("externalTransactionId")
-        new_status = data.get("STATUS", "").lower()  # 'completed', 'failed', etc.
+        new_status = data.get("STATUS").lower()  # 'completed', 'failed', etc.
         external_ref = data.get("id")
         error = data.get("error")
         amount = data.get("AMOUNT")
@@ -329,6 +329,9 @@ class DexchangeCallbackView(APIView):
         balance = data.get("BALANCE")
         previous_balance = data.get("PREVIOUS_BALANCE")
         current_balance = data.get("CURRENT_BALANCE")
+
+        print("The status is : ", new_status)
+        print("Status.completed donne :", TransactionStatus.COMPLETED)
 
         # Find the transaction
         transaction = (
