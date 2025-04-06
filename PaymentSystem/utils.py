@@ -3,10 +3,12 @@ import random
 from twilio.rest import Client
 
 from FaymaKashProject import settings
-
+from django.conf import settings
 
 # Function to send OTP via Twilio Verify
 def send_otp_via_twilio(phone_number):
+    if settings.DEBUG_OTP:
+        return True
     # Convert PhoneNumber object to string if it's not already
     phone_str = str(phone_number).replace(' ', '')  # Remove any spaces
     
@@ -21,6 +23,8 @@ def send_otp_via_twilio(phone_number):
 
 # Function to check the OTP entered by the user
 def check_otp_via_twilio(phone_number, otp):
+    if settings.DEBUG_OTP:
+        return True
     # Convert PhoneNumber object to string if it's not already
     phone_str = str(phone_number).replace(' ', '')  # Remove any spaces
     

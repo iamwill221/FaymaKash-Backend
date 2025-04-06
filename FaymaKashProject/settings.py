@@ -98,6 +98,7 @@ DATABASES = {
 }
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG_OTP = os.getenv("DEBUG_OTP", "False") == "True"
 
 if DEBUG is True:
     DATABASES = {
