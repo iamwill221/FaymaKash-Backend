@@ -132,8 +132,8 @@ class CustomUser(AbstractUser, TransactionValidationMixin):
         self.validate_different_users(self, other_user)
 
         with transaction.atomic():
-            CustomUser.objects.filter(pk=self.pk).update(cash=F('cash') + amount)
-            CustomUser.objects.filter(pk=other_user.pk).update(cash=F('cash') - amount)
+            CustomUser.objects.filter(pk=self.pk).update(cash=F('cash') - amount)
+            CustomUser.objects.filter(pk=other_user.pk).update(cash=F('cash') + amount)
 
             InternalTransaction.objects.create(
                 transaction_type=transaction_type,
@@ -161,8 +161,8 @@ class CustomUser(AbstractUser, TransactionValidationMixin):
         self.validate_different_users(self, other_user)
 
         with transaction.atomic():
-            CustomUser.objects.filter(pk=self.pk).update(cash=F('cash') - amount)
-            CustomUser.objects.filter(pk=other_user.pk).update(cash=F('cash') + amount)
+            CustomUser.objects.filter(pk=self.pk).update(cash=F('cash') + amount)
+            CustomUser.objects.filter(pk=other_user.pk).update(cash=F('cash') - amount)
 
             InternalTransaction.objects.create(
                 transaction_type=transaction_type,
