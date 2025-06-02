@@ -319,6 +319,9 @@ class DexchangeCallbackView(APIView):
         # Extract fields from the request data
         transaction_id = data.get("externalTransactionId")
         new_status = data.get("STATUS", "").lower()  # 'completed', 'failed', etc.
+        if new_status == "success":
+            new_status = "completed"
+        print("The new status from dexchange is {}".format(new_status))
         external_ref = data.get("id")
         error = data.get("error")
         amount = data.get("AMOUNT")
