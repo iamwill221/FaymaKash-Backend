@@ -60,16 +60,40 @@ python manage.py runserver
 
 ## API Endpoints
 
-### Authentication
+### Authentication & User Management
+- `POST /api/auth/send-otp/` - Send OTP via SMS for verification
+- `POST /api/auth/verify-otp/` - Verify OTP code
+- `POST /api/auth/check-user/` - Check if user exists by phone number
+- `POST /api/auth/login/` - Login with phone number and pincode
 - `POST /api/auth/users/` - Register new user
 - `POST /api/auth/jwt/create/` - Get JWT tokens
 - `POST /api/auth/jwt/refresh/` - Refresh JWT token
+- `POST /api/auth/jwt/verify/` - Verify JWT token
+- `POST /api/auth/users/activation/` - Activate user account
+- `POST /api/auth/users/resend_activation/` - Resend activation email
+- `POST /api/auth/users/reset_password/` - Request password reset
+- `POST /api/auth/users/reset_password_confirm/` - Confirm password reset
+- `POST /api/auth/users/set_password/` - Set new password (authenticated)
+- `GET /api/auth/users/me/` - Get current user profile
+- `PUT /api/auth/users/me/` - Update current user profile
+- `PATCH /api/auth/users/me/` - Partially update current user profile
+- `DELETE /api/auth/users/me/` - Delete current user account
 
-### Payment System
-- `GET /api/` - API root
-- `POST /api/transactions/callback/dexchange/` - DExchange callback
-- `GET /api/transactions/success/` - Success callback
-- `GET /api/transactions/failure/` - Failure callback
+### Transaction Management
+- `GET /api/transactions/` - Get transaction history for authenticated user
+- `POST /api/transactions/deposit/` - Deposit funds using NFC card
+- `POST /api/transactions/withdraw/` - Withdraw funds using NFC card  
+- `POST /api/transactions/transfer/` - Transfer funds between users
+- `POST /api/transactions/payment/` - Make payment using NFC card
+- `POST /api/transactions/deposit_momo/` - Deposit via Mobile Money
+- `POST /api/transactions/withdraw_momo/` - Withdraw via Mobile Money
+- `POST /api/transactions/callback/dexchange/` - DExchange payment callback
+- `GET /api/transactions/success/` - Transaction success page
+- `GET /api/transactions/failure/` - Transaction failure page
+
+### NFC Card Management  
+- `POST /api/nfc/manage/` - Lock/unlock NFC card
+- `POST /api/nfc/update_vcard_id/` - Update virtual card identifier
 
 ### Admin
 - `/admin/` - Django admin interface
@@ -97,4 +121,5 @@ FaymaKash/
 3. Commit your changes
 4. Push to the branch
 5. Create a Pull Request
-```
+
+![Made-In-Senegal](https://github.com/GalsenDev221/made.in.senegal/blob/master/assets/badge.svg)
