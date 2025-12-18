@@ -222,3 +222,16 @@ DEXCHANGE_FAILURE_URL = f"{BASE_DOMAIN}/api/transactions/failure/"
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+# CSRF - Domaines de confiance pour la production
+CSRF_TRUSTED_ORIGINS = [
+    os.getenv('BASE_DOMAIN', ''),  # ex: "https://votre-domaine.com"
+]
+
+# Si vous êtes derrière un proxy (Dokploy, etc.)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Cookies sécurisés en production
+if not DEBUG:
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+
