@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+db.sqlite3
+*.sqlite3
+
+# Static files (will be collected during build)
+staticfiles/
+
+# Logs
+*.log
+
+# Docker
+Dockerfile
+docker-compose.yml
+.docker/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Misc
+*.md
+LICENSE

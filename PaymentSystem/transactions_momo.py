@@ -181,11 +181,26 @@ class DexchangeAPI:
             raise TransactionError(f"Failed to get transaction status: {str(e)}")
 
 
-# Initialize the API client
-dexchange_api = DexchangeAPI()
+# Initialize the API client lazily
+_dexchange_api = None
+
+def get_dexchange_api():
+    """Get or create the DexchangeAPI instance (lazy initialization)."""
+    global _dexchange_api
+    if _dexchange_api is None:
+        _dexchange_api = DexchangeAPI()
+    return _dexchange_api
+
+# For backwards compatibility - use property-like access
+class _LazyDexchangeAPI:
+    """Lazy wrapper for DexchangeAPI to defer initialization."""
+    def __getattr__(self, name):
+        return getattr(get_dexchange_api(), name)
+
+dexchange_api = _LazyDexchangeAPI()
 
 
 # Export the send_transaction_payload function to maintain backwards compatibility
 def send_transaction_payload(*args, **kwargs):
     """Wrapper function for backwards compatibility."""
-    return dexchange_api.send_transaction_payload(*args, **kwargs)
+    return get_dexchange_api().send_transaction_payload(*args, **kwargs)

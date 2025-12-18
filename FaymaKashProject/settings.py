@@ -208,15 +208,17 @@ TWILIO_VERIFY_SERVICE_SID = os.getenv('TWILIO_VERIFY_SERVICE_SID')
 # DExchange settings
 DEXCHANGE_API_KEY = os.getenv('DEXCHANGE_API_KEY')
 
-BASE_DOMAIN = os.getenv('BASE_DOMAIN')
+BASE_DOMAIN = os.getenv('BASE_DOMAIN', '')
 
-# Validate required environment variables
-if not BASE_DOMAIN:
-    raise ImproperlyConfigured("BASE_DOMAIN must be set in the environment variables.")
+# Only validate at runtime, not during collectstatic
+import sys
+if 'collectstatic' not in sys.argv:
+    if not BASE_DOMAIN:
+        raise ImproperlyConfigured("BASE_DOMAIN must be set in the environment variables.")
 
 DEXCHANGE_CALLBACK_URL = f"{BASE_DOMAIN}/api/transactions/callback/dexchange/"
 DEXCHANGE_SUCCESS_URL = f"{BASE_DOMAIN}/api/transactions/success/"
-DEXCHANGE_FAILURE_URL = f"{BASE_DOMAIN}/apitransactions/failure/"
+DEXCHANGE_FAILURE_URL = f"{BASE_DOMAIN}/api/transactions/failure/"
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 

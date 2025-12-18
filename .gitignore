@@ -62,3 +62,15 @@ Thumbs.db
 *.pem
 *.key
 secrets.json
+
+# Docker
+.docker/
+
+
+# Pytest
+.pytest_cache/
+htmlcov/
+
+# Coverage
+.coverage
+coverage.xml
