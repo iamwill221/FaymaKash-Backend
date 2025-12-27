@@ -343,7 +343,7 @@ class Transaction(models.Model):
     transaction_type = models.CharField(max_length=20, choices=TransactionType.choices)
     amount = models.IntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    transaction_reference = models.CharField(max_length=50, unique=True, blank=True)
+    transaction_reference = models.CharField(max_length=100, unique=True, blank=True)
     status = models.CharField(
         max_length=20,
         choices=TransactionStatus.choices,

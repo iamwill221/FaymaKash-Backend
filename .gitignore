@@ -76,3 +76,4 @@ htmlcov/
 coverage.xml
 
 _scalability_test.py
+_scalability_test_readonly.py
