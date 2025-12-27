@@ -367,7 +367,13 @@ class Transaction(models.Model):
             transaction_reference__startswith=f"FKash-{today}"
         ).aggregate(Max('transaction_reference'))['transaction_reference__max']
 
-        sequence = int(max_sequence.split('-')[-1]) + 1 if max_sequence else 1
+        if max_sequence:
+            # Extract just the 5-digit sequence (characters after last dash, first 5 digits)
+            suffix = max_sequence.split('-')[-1]
+            sequence = int(suffix[:5]) + 1  # Take first 5 digits only
+        else:
+            sequence = 1
+            
         return f"FKash-{today}-{sequence:05d}{random.randint(1000, 9999)}"
 
 
