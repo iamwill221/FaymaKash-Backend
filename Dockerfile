@@ -8,6 +8,10 @@ ENV PYTHONUNBUFFERED=1
 # Set work directory
 WORKDIR /app
 
+# Ensure bash is installed and set as shell
+RUN apt-get update && apt-get install -y --no-install-recommends bash
+SHELL ["/bin/bash", "-c"]
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
