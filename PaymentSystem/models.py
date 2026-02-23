@@ -210,7 +210,7 @@ class CustomUser(AbstractUser, TransactionValidationMixin):
         """
 
         self.validate_amount(amount)
-        self.validate_sufficient_funds(self, amount)
+        self.validate_sufficient_funds(other_user, amount)
         self.validate_different_users(self, other_user)
 
         with transaction.atomic():
