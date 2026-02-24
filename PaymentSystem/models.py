@@ -1,5 +1,6 @@
 import random
 import uuid
+from datetime import timedelta
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models, transaction
@@ -431,29 +432,57 @@ class ExternalWithdrawalTransaction(ExternalTransaction):
 
 
 class NFCCard(models.Model):
-    physical_card_token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)  # Numéro de série unique, 14 caractères hexadécimaux
+    physical_card_token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
     virtual_card_token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
     user = models.OneToOneField('CustomUser', on_delete=models.CASCADE,
-                                related_name='nfc_card')  # Un seul utilisateur par carte
-    is_active = models.BooleanField(default=True)  # Statut de la carte (active/inactive)
-    last_accessed = models.DateTimeField(null=True, blank=True)  # Dernière utilisation de la carte
+                                related_name='nfc_card')
+    is_active = models.BooleanField(default=True)
+    last_accessed = models.DateTimeField(null=True, blank=True)
+
+    sdm_aes_key = models.CharField(max_length=64, null=True, blank=True,
+                                   help_text="AES-128 key (hex) for DESFire EV3 SDM verification")
+    last_sdm_counter = models.PositiveIntegerField(default=0,
+                                                   help_text="Last seen SDM read counter for anti-replay")
 
     def update_virtual_card_token(self):
-        """Met à jour l'identifiant de la carte virtuelle avec un nouveau UUID"""
-        self.virtual_card_token = uuid.uuid4()  # Assign a new UUID to the virtual_card_token
+        self.virtual_card_token = uuid.uuid4()
         self.last_accessed = timezone.now()
         self.save()
-        return self.virtual_card_token  # Return the updated virtual_card_token
+        return self.virtual_card_token
 
     def lock_card(self):
-        """Method to block the NFC card"""
         self.is_active = False
         self.save()
 
     def unlock_card(self):
-        """Method to unblock the NFC card"""
         self.is_active = True
         self.save()
 
     def __str__(self):
-        return f"NFC Card {self.physical_card_token} ({self.physical_card_token}) for {self.user.username}"
+        return f"NFC Card {self.physical_card_token} for {self.user}"
+
+
+class UsedNonce(models.Model):
+    """Tracks used HCE token nonces to prevent replay attacks."""
+    nonce = models.CharField(max_length=36, unique=True, db_index=True)
+    used_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['used_at']),
+        ]
+
+    @classmethod
+    def is_used(cls, nonce: str) -> bool:
+        return cls.objects.filter(nonce=nonce).exists()
+
+    @classmethod
+    def mark_used(cls, nonce: str) -> None:
+        cls.objects.create(nonce=nonce)
+
+    @classmethod
+    def cleanup_old(cls, older_than_seconds: int = 300) -> int:
+        """Remove nonces older than the given threshold (default 5 minutes)."""
+        cutoff = timezone.now() - timedelta(seconds=older_than_seconds)
+        deleted_count, _ = cls.objects.filter(used_at__lt=cutoff).delete()
+        return deleted_count

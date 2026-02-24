@@ -222,6 +222,9 @@ DEXCHANGE_FAILURE_URL = f"{BASE_DOMAIN}/api/transactions/failure/"
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+HCE_SECRET_KEY = os.getenv('HCE_SECRET_KEY', SECRET_KEY)
+HCE_TOKEN_LIFETIME_SECONDS = 30
+
 # CSRF - Domaines de confiance pour la production
 CSRF_TRUSTED_ORIGINS = [
     os.getenv('BASE_DOMAIN', ''),  # ex: "https://votre-domaine.com"

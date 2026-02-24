@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CustomUser, InternalTransaction, ExternalDepositTransaction, ExternalWithdrawalTransaction, NFCCard
+from .models import CustomUser, InternalTransaction, ExternalDepositTransaction, ExternalWithdrawalTransaction, NFCCard, UsedNonce
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
@@ -73,15 +73,25 @@ class ExternalWithdrawalTransactionAdmin(admin.ModelAdmin):
 
 @admin.register(NFCCard)
 class NFCCardAdmin(admin.ModelAdmin):
-    list_display = ('physical_card_token', 'virtual_card_token', 'user', 'is_active', 'last_accessed')
+    list_display = ('physical_card_token', 'virtual_card_token', 'user', 'is_active', 'last_accessed', 'last_sdm_counter')
     search_fields = ('physical_card_token', 'user__phone_number')
     list_filter = ('is_active',)
-    readonly_fields = ('last_accessed', 'virtual_card_token')  # Ajout de champs en lecture seule
+    readonly_fields = ('last_accessed', 'virtual_card_token', 'last_sdm_counter')
     fieldsets = (
         (None, {
             'fields': ('physical_card_token', 'virtual_card_token', 'user', 'is_active')
+        }),
+        ('DESFire EV3 SDM', {
+            'fields': ('sdm_aes_key', 'last_sdm_counter'),
         }),
         ('Metadata', {
             'fields': ('last_accessed',),
         }),
     )
+
+
+@admin.register(UsedNonce)
+class UsedNonceAdmin(admin.ModelAdmin):
+    list_display = ('nonce', 'used_at')
+    search_fields = ('nonce',)
+    readonly_fields = ('nonce', 'used_at')

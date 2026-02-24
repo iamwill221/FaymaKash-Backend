@@ -429,15 +429,30 @@ class NFCCardLockView(APIView):
 
 
 class UpdateVirtualCardIdentifierView(APIView):
+    """
+    Generates a signed HCE token for phone-based NFC emulation.
+    The token is HMAC-signed, time-limited (30s), and single-use.
+    Kept at the same URL for backward compatibility.
+    """
     permission_classes = [IsAuthenticated, IsClient]
 
     def post(self, request):
         try:
-            # Mettre à jour l'UID HCE de la carte associée à l'utilisateur
             nfc_card = request.user.nfc_card
-            new_virtual_card_identifier = nfc_card.update_virtual_card_token()
+            if not nfc_card.is_active:
+                return Response(
+                    {"error": "Votre carte NFC est désactivée."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            from .hce_crypto import generate_hce_token
+            token = generate_hce_token(user_id=request.user.pk)
+
+            nfc_card.last_accessed = timezone.now()
+            nfc_card.save(update_fields=["last_accessed"])
+
             return Response({
-                "virtual_card_identifier": new_virtual_card_identifier
+                "virtual_card_identifier": token,
             }, status=status.HTTP_200_OK)
         except NFCCard.DoesNotExist:
             return Response({"error": "Aucune carte NFC trouvée"}, status=status.HTTP_404_NOT_FOUND)

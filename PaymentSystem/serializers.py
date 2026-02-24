@@ -1,3 +1,5 @@
+import logging
+
 from django.db.models import Q
 from django.utils import timezone
 from djoser.serializers import UserCreateSerializer, UserSerializer
@@ -10,6 +12,8 @@ from .models import (
     TransactionStatus, MOMO_SERVICES, NFCCard
 )
 from .transactions_momo import TransactionError, ServiceType
+
+logger = logging.getLogger(__name__)
 
 
 class OtpRequestSerializer(serializers.Serializer):
@@ -96,46 +100,81 @@ class BaseTransactionSerializer(serializers.Serializer):
 
 
 class BaseNFCTransactionSerializer(serializers.Serializer):
-    """Base serializer for NFC card transactions"""
-    identifier = serializers.CharField(required=True, max_length=50)  # Identifiant unique de la carte (manufacturer ou virtual)
-    amount = serializers.IntegerField(min_value=100)  # Minimum 100 F CFA
+    """
+    Base serializer for NFC card transactions.
+
+    Supports three identifier formats:
+      - HCE:<payload>.<sig>  : HMAC-signed phone token (single-use, time-limited)
+      - SDM:<uid>.<ctr>.<mac>: DESFire EV3 Secure Dynamic Messaging
+      - <uuid>               : Legacy plain UUID (backward compat, will be deprecated)
+    """
+    identifier = serializers.CharField(required=True, max_length=255)
+    amount = serializers.IntegerField(min_value=100)
+
+    def _resolve_hce(self, identifier: str) -> NFCCard:
+        from .hce_crypto import verify_hce_token
+        payload = verify_hce_token(identifier)
+        try:
+            user = CustomUser.objects.get(pk=payload.user_id)
+            return user.nfc_card
+        except (CustomUser.DoesNotExist, NFCCard.DoesNotExist):
+            raise serializers.ValidationError(
+                {"identifier": "Utilisateur ou carte introuvable pour ce token HCE."}
+            )
+
+    def _resolve_sdm(self, identifier: str) -> NFCCard:
+        from .hce_crypto import verify_sdm_token
+
+        def card_lookup(uid_hex: str) -> NFCCard:
+            cards = NFCCard.objects.filter(
+                sdm_aes_key__isnull=False,
+                is_active=True,
+            )
+            for card in cards:
+                if str(card.physical_card_token).replace("-", "")[:14].lower() == uid_hex.lower():
+                    return card
+            raise NFCCard.DoesNotExist()
+
+        result = verify_sdm_token(identifier, card_lookup)
+        return card_lookup(result.card_uid)
+
+    def _resolve_legacy(self, identifier: str) -> NFCCard:
+        try:
+            return NFCCard.objects.get(
+                Q(physical_card_token=identifier) | Q(virtual_card_token=identifier)
+            )
+        except NFCCard.DoesNotExist:
+            raise serializers.ValidationError(
+                {"identifier": "Identifiant de carte invalide."}
+            )
 
     def validate(self, data):
-        """
-        Validate that the identifier matches an active NFC card.
-        """
         identifier = data['identifier']
 
         try:
-            # Recherche de la carte en utilisant l'identifiant fourni
-            nfc_card = NFCCard.objects.get(
-                Q(physical_card_token=identifier) | Q(virtual_card_token=identifier)
-            )
+            if identifier.startswith("HCE:"):
+                nfc_card = self._resolve_hce(identifier)
+            elif identifier.startswith("SDM:"):
+                nfc_card = self._resolve_sdm(identifier)
+            else:
+                nfc_card = self._resolve_legacy(identifier)
+        except serializers.ValidationError:
+            raise
+        except ValueError as e:
+            raise serializers.ValidationError({"identifier": str(e)})
 
-            # Vérifier que la carte est active
-            if not nfc_card.is_active:
-                raise serializers.ValidationError("La carte NFC est inactive.")
+        if not nfc_card.is_active:
+            raise serializers.ValidationError("La carte NFC est inactive.")
 
-            # Vérifier que l'utilisateur associé à la carte est actif
-            user = nfc_card.user
-            if not user.is_active:
-                raise serializers.ValidationError("Le compte utilisateur est inactif.")
+        user = nfc_card.user
+        if not user.is_active:
+            raise serializers.ValidationError("Le compte utilisateur est inactif.")
 
-            # Ajouter la carte validée aux données pour une utilisation ultérieure
-            data['nfc_card'] = nfc_card
-
-            return data
-
-        except NFCCard.DoesNotExist:
-            raise serializers.ValidationError({
-                "identifier": "Identifiant de carte invalide."
-            })
+        data['nfc_card'] = nfc_card
+        return data
 
     def validate_amount(self, value: int) -> int:
-        """
-        Validate that the transaction amount is within acceptable limits.
-        """
-        if value > 1000000:  # Maximum 1,000,000 F CFA
+        if value > 1000000:
             raise serializers.ValidationError("Montant maximum dépassé.")
         return value
 class DepositSerializer(BaseNFCTransactionSerializer):
