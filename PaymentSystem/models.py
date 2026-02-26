@@ -432,7 +432,10 @@ class ExternalWithdrawalTransaction(ExternalTransaction):
 
 
 class NFCCard(models.Model):
-    physical_card_token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
+    physical_card_token = models.CharField(
+        max_length=14, null=True, blank=True, unique=True, db_index=True,
+        help_text="DESFire EV3 card UID (7 bytes / 14 hex chars). Null for HCE-only users."
+    )
     virtual_card_token = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
     user = models.OneToOneField('CustomUser', on_delete=models.CASCADE,
                                 related_name='nfc_card')
@@ -459,7 +462,8 @@ class NFCCard(models.Model):
         self.save()
 
     def __str__(self):
-        return f"NFC Card {self.physical_card_token} for {self.user}"
+        label = self.physical_card_token or "HCE-only"
+        return f"NFC Card ({label}) for {self.user}"
 
 
 class UsedNonce(models.Model):

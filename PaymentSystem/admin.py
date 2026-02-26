@@ -73,8 +73,8 @@ class ExternalWithdrawalTransactionAdmin(admin.ModelAdmin):
 
 @admin.register(NFCCard)
 class NFCCardAdmin(admin.ModelAdmin):
-    list_display = ('physical_card_token', 'virtual_card_token', 'user', 'is_active', 'last_accessed', 'last_sdm_counter')
-    search_fields = ('physical_card_token', 'user__phone_number')
+    list_display = ('user', 'physical_card_token', 'is_active', 'last_accessed', 'last_sdm_counter')
+    search_fields = ('physical_card_token', 'user__phone_number', 'user__firstname', 'user__lastname')
     list_filter = ('is_active',)
     readonly_fields = ('last_accessed', 'virtual_card_token', 'last_sdm_counter')
     fieldsets = (

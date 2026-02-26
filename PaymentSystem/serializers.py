@@ -94,7 +94,7 @@ class BaseTransactionSerializer(serializers.Serializer):
             raise serializers.ValidationError("Utilisateur non trouvé.")
 
     def validate_amount(self, value: int) -> int:
-        if value > 1000000:  # Maximum 1,000,000 F CFA
+        if value > 2000000:  # Maximum 2,000,000 F CFA
             raise serializers.ValidationError("Montant maximum dépassé.")
         return value
 
@@ -103,10 +103,9 @@ class BaseNFCTransactionSerializer(serializers.Serializer):
     """
     Base serializer for NFC card transactions.
 
-    Supports three identifier formats:
+    Supports two identifier formats:
       - HCE:<payload>.<sig>  : HMAC-signed phone token (single-use, time-limited)
       - SDM:<uid>.<ctr>.<mac>: DESFire EV3 Secure Dynamic Messaging
-      - <uuid>               : Legacy plain UUID (backward compat, will be deprecated)
     """
     identifier = serializers.CharField(required=True, max_length=255)
     amount = serializers.IntegerField(min_value=100)
@@ -126,27 +125,17 @@ class BaseNFCTransactionSerializer(serializers.Serializer):
         from .hce_crypto import verify_sdm_token
 
         def card_lookup(uid_hex: str) -> NFCCard:
-            cards = NFCCard.objects.filter(
-                sdm_aes_key__isnull=False,
-                is_active=True,
-            )
-            for card in cards:
-                if str(card.physical_card_token).replace("-", "")[:14].lower() == uid_hex.lower():
-                    return card
-            raise NFCCard.DoesNotExist()
+            try:
+                return NFCCard.objects.get(
+                    physical_card_token__iexact=uid_hex,
+                    sdm_aes_key__isnull=False,
+                    is_active=True,
+                )
+            except NFCCard.DoesNotExist:
+                raise NFCCard.DoesNotExist("Carte physique inconnue.")
 
         result = verify_sdm_token(identifier, card_lookup)
         return card_lookup(result.card_uid)
-
-    def _resolve_legacy(self, identifier: str) -> NFCCard:
-        try:
-            return NFCCard.objects.get(
-                Q(physical_card_token=identifier) | Q(virtual_card_token=identifier)
-            )
-        except NFCCard.DoesNotExist:
-            raise serializers.ValidationError(
-                {"identifier": "Identifiant de carte invalide."}
-            )
 
     def validate(self, data):
         identifier = data['identifier']
@@ -157,7 +146,9 @@ class BaseNFCTransactionSerializer(serializers.Serializer):
             elif identifier.startswith("SDM:"):
                 nfc_card = self._resolve_sdm(identifier)
             else:
-                nfc_card = self._resolve_legacy(identifier)
+                raise serializers.ValidationError(
+                    {"identifier": "Format d'identifiant invalide. Attendu: HCE:... ou SDM:..."}
+                )
         except serializers.ValidationError:
             raise
         except ValueError as e:
