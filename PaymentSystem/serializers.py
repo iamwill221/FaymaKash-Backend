@@ -348,3 +348,42 @@ class ExternalWithdrawalTransactionSerializer(BaseTransactionHistorySerializer):
 
 class NFCCardLockSerializer(serializers.Serializer):
     card_activation_status = serializers.BooleanField(required=True)
+
+
+class RegisterPhysicalCardSerializer(serializers.Serializer):
+    """
+    Pairs a provisioned DESFire EV3 card with an existing client account.
+    Called by the provisioning Android app after writing card data.
+    """
+    physical_card_token = serializers.RegexField(
+        r'^[0-9A-Fa-f]{14}$',
+        help_text="DESFire EV3 card UID (7 bytes as 14 hex chars)"
+    )
+    sdm_aes_key = serializers.RegexField(
+        r'^[0-9A-Fa-f]{32}$',
+        help_text="AES-128 SDM key (16 bytes as 32 hex chars)"
+    )
+    user_phone = PhoneNumberField(
+        help_text="Phone number of the client to pair with this card"
+    )
+
+    def validate_physical_card_token(self, value):
+        value = value.upper()
+        if NFCCard.objects.filter(physical_card_token__iexact=value).exists():
+            raise serializers.ValidationError(
+                "Ce UID de carte est déjà enregistré."
+            )
+        return value
+
+    def validate_user_phone(self, value):
+        try:
+            user = CustomUser.objects.get(phone_number=value, is_active=True)
+        except CustomUser.DoesNotExist:
+            raise serializers.ValidationError(
+                "Aucun utilisateur client actif trouvé avec ce numéro."
+            )
+        if user.user_type != UserType.CLIENT:
+            raise serializers.ValidationError(
+                "L'utilisateur doit être un client."
+            )
+        return value

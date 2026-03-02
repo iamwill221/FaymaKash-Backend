@@ -13,6 +13,7 @@ from .views import (
     DepositMobileMoneyView,
     WithdrawMobileMoneyView, DexchangeCallbackView, success_page, failure_page, NFCCardLockView,
     UpdateVirtualCardIdentifierView,
+    RegisterPhysicalCardView,
 )
 
 urlpatterns = [
@@ -47,5 +48,6 @@ urlpatterns = [
     path('nfc/', include([
         path('manage/', NFCCardLockView.as_view(), name='nfc-card-manage'),
         path('update_vcard_id/', UpdateVirtualCardIdentifierView.as_view(), name='update_vcard_id'),
+        path('register_card/', RegisterPhysicalCardView.as_view(), name='register-physical-card'),
     ])),
     ]

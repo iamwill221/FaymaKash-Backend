@@ -20,7 +20,7 @@ from .serializers import (
     ExternalWithdrawalTransactionSerializer, DepositSerializer,
     WithdrawSerializer, TransferSerializer, PaymentSerializer,
     DepositMobileMoneySerializer, WithdrawMobileMoneySerializer,
-    UserExistsSerializer, NFCCardLockSerializer
+    UserExistsSerializer, NFCCardLockSerializer, RegisterPhysicalCardSerializer
 )
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -458,3 +458,58 @@ class UpdateVirtualCardIdentifierView(APIView):
             return Response({"error": "Aucune carte NFC trouvée"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RegisterPhysicalCardView(APIView):
+    """
+    Pairs a provisioned DESFire EV3 card with an existing client account.
+    Called by the Android provisioning app after writing card data.
+
+    POST /api/nfc/register_card/
+    {
+        "physical_card_token": "0485B6D91C0100",   // 14 hex chars (7-byte UID)
+        "sdm_aes_key": "00112233...EEFF",          // 32 hex chars (AES-128)
+        "user_phone": "+221770001234"
+    }
+    """
+    permission_classes = [IsAuthenticated, IsManager]
+
+    @transaction.atomic
+    def post(self, request):
+        serializer = RegisterPhysicalCardSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        phone = serializer.validated_data['user_phone']
+        token = serializer.validated_data['physical_card_token'].upper()
+        key = serializer.validated_data['sdm_aes_key'].upper()
+
+        try:
+            user = CustomUser.objects.get(phone_number=phone, is_active=True)
+            nfc_card = user.nfc_card
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": "Utilisateur non trouvé."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except NFCCard.DoesNotExist:
+            return Response(
+                {"error": "Aucune carte NFC associée à cet utilisateur. "
+                          "L'utilisateur doit d'abord créer un compte client."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        nfc_card.physical_card_token = token
+        nfc_card.sdm_aes_key = key
+        nfc_card.last_sdm_counter = 0
+        nfc_card.last_accessed = timezone.now()
+        nfc_card.save(update_fields=[
+            'physical_card_token', 'sdm_aes_key',
+            'last_sdm_counter', 'last_accessed'
+        ])
+
+        return Response({
+            "message": "Carte physique enregistrée avec succès.",
+            "physical_card_token": token,
+            "user_phone": str(phone),
+            "user_name": f"{user.firstname} {user.lastname}",
+        }, status=status.HTTP_200_OK)
