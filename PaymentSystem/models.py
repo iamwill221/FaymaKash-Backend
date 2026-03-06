@@ -443,9 +443,9 @@ class NFCCard(models.Model):
     last_accessed = models.DateTimeField(null=True, blank=True)
 
     sdm_aes_key = models.CharField(max_length=64, null=True, blank=True,
-                                   help_text="AES-128 key (hex) for DESFire EV3 SDM verification")
+                                   help_text="AES-128 read key (hex) for physical card CMAC verification")
     last_sdm_counter = models.PositiveIntegerField(default=0,
-                                                   help_text="Last seen SDM read counter for anti-replay")
+                                                   help_text="Deprecated – kept for backward compat")
 
     def update_virtual_card_token(self):
         self.virtual_card_token = uuid.uuid4()

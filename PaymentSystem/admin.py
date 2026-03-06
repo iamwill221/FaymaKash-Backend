@@ -73,16 +73,16 @@ class ExternalWithdrawalTransactionAdmin(admin.ModelAdmin):
 
 @admin.register(NFCCard)
 class NFCCardAdmin(admin.ModelAdmin):
-    list_display = ('user', 'physical_card_token', 'is_active', 'last_accessed', 'last_sdm_counter')
+    list_display = ('user', 'physical_card_token', 'is_active', 'last_accessed')
     search_fields = ('physical_card_token', 'user__phone_number', 'user__firstname', 'user__lastname')
     list_filter = ('is_active',)
-    readonly_fields = ('last_accessed', 'virtual_card_token', 'last_sdm_counter')
+    readonly_fields = ('last_accessed', 'virtual_card_token')
     fieldsets = (
         (None, {
             'fields': ('physical_card_token', 'virtual_card_token', 'user', 'is_active')
         }),
-        ('DESFire EV3 SDM', {
-            'fields': ('sdm_aes_key', 'last_sdm_counter'),
+        ('DESFire EV3 AES', {
+            'fields': ('sdm_aes_key',),
         }),
         ('Metadata', {
             'fields': ('last_accessed',),

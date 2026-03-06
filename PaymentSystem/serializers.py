@@ -105,7 +105,7 @@ class BaseNFCTransactionSerializer(serializers.Serializer):
 
     Supports two identifier formats:
       - HCE:<payload>.<sig>  : HMAC-signed phone token (single-use, time-limited)
-      - SDM:<uid>.<ctr>.<mac>: DESFire EV3 Secure Dynamic Messaging
+      - FK:<uid>.<cmac>      : DESFire EV3 physical card CMAC token
     """
     identifier = serializers.CharField(required=True, max_length=255)
     amount = serializers.IntegerField(min_value=100)
@@ -121,8 +121,8 @@ class BaseNFCTransactionSerializer(serializers.Serializer):
                 {"identifier": "Utilisateur ou carte introuvable pour ce token HCE."}
             )
 
-    def _resolve_sdm(self, identifier: str) -> NFCCard:
-        from .hce_crypto import verify_sdm_token
+    def _resolve_fk(self, identifier: str) -> NFCCard:
+        from .hce_crypto import verify_fk_token
 
         def card_lookup(uid_hex: str) -> NFCCard:
             try:
@@ -134,7 +134,7 @@ class BaseNFCTransactionSerializer(serializers.Serializer):
             except NFCCard.DoesNotExist:
                 raise NFCCard.DoesNotExist("Carte physique inconnue.")
 
-        result = verify_sdm_token(identifier, card_lookup)
+        result = verify_fk_token(identifier, card_lookup)
         return card_lookup(result.card_uid)
 
     def validate(self, data):
@@ -143,11 +143,11 @@ class BaseNFCTransactionSerializer(serializers.Serializer):
         try:
             if identifier.startswith("HCE:"):
                 nfc_card = self._resolve_hce(identifier)
-            elif identifier.startswith("SDM:"):
-                nfc_card = self._resolve_sdm(identifier)
+            elif identifier.startswith("FK:"):
+                nfc_card = self._resolve_fk(identifier)
             else:
                 raise serializers.ValidationError(
-                    {"identifier": "Format d'identifiant invalide. Attendu: HCE:... ou SDM:..."}
+                    {"identifier": "Format d'identifiant invalide. Attendu: HCE:... ou FK:..."}
                 )
         except serializers.ValidationError:
             raise
@@ -359,9 +359,9 @@ class RegisterPhysicalCardSerializer(serializers.Serializer):
         r'^[0-9A-Fa-f]{14}$',
         help_text="DESFire EV3 card UID (7 bytes as 14 hex chars)"
     )
-    sdm_aes_key = serializers.RegexField(
+    read_aes_key = serializers.RegexField(
         r'^[0-9A-Fa-f]{32}$',
-        help_text="AES-128 SDM key (16 bytes as 32 hex chars)"
+        help_text="AES-128 read key (16 bytes as 32 hex chars)"
     )
     user_phone = PhoneNumberField(
         help_text="Phone number of the client to pair with this card"

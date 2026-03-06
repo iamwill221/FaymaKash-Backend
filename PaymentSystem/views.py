@@ -468,7 +468,7 @@ class RegisterPhysicalCardView(APIView):
     POST /api/nfc/register_card/
     {
         "physical_card_token": "0485B6D91C0100",   // 14 hex chars (7-byte UID)
-        "sdm_aes_key": "00112233...EEFF",          // 32 hex chars (AES-128)
+        "read_aes_key": "00112233...EEFF",           // 32 hex chars (AES-128)
         "user_phone": "+221770001234"
     }
     """
@@ -481,7 +481,7 @@ class RegisterPhysicalCardView(APIView):
 
         phone = serializer.validated_data['user_phone']
         token = serializer.validated_data['physical_card_token'].upper()
-        key = serializer.validated_data['sdm_aes_key'].upper()
+        key = serializer.validated_data['read_aes_key'].upper()
 
         try:
             user = CustomUser.objects.get(phone_number=phone, is_active=True)
@@ -500,11 +500,10 @@ class RegisterPhysicalCardView(APIView):
 
         nfc_card.physical_card_token = token
         nfc_card.sdm_aes_key = key
-        nfc_card.last_sdm_counter = 0
         nfc_card.last_accessed = timezone.now()
         nfc_card.save(update_fields=[
             'physical_card_token', 'sdm_aes_key',
-            'last_sdm_counter', 'last_accessed'
+            'last_accessed'
         ])
 
         return Response({

@@ -1,10 +1,10 @@
 """
 Cryptographic utilities for HCE token generation/verification
-and DESFire EV3 SDM verification.
+and DESFire EV3 physical card CMAC verification.
 
 Two authentication paths:
   - HCE:  HMAC-SHA256 signed tokens (phone emulation)
-  - SDM:  AES-CMAC verified messages (DESFire EV3 physical cards)
+  - FK:   AES-CMAC verified tokens (DESFire EV3 physical cards)
 """
 
 import base64
@@ -111,7 +111,7 @@ def verify_hce_token(token: str) -> HCETokenPayload:
 
 
 # ---------------------------------------------------------------------------
-# DESFire EV3 SDM verification (physical card path)
+# DESFire EV3 physical card CMAC verification (FK token path)
 # ---------------------------------------------------------------------------
 
 def _aes_cmac(key_bytes: bytes, message: bytes) -> bytes:
@@ -128,84 +128,50 @@ def _aes_cmac(key_bytes: bytes, message: bytes) -> bytes:
         return cobj.digest()
     except ImportError:
         raise ImportError(
-            "pycryptodome is required for SDM verification. "
-            "Install it with: pip install pycryptodome"
-        )
-
-
-def _aes_decrypt_cbc(key_bytes: bytes, iv: bytes, ciphertext: bytes) -> bytes:
-    """AES-128 CBC decryption."""
-    try:
-        from Crypto.Cipher import AES
-        cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
-        return cipher.decrypt(ciphertext)
-    except ImportError:
-        raise ImportError(
-            "pycryptodome is required for SDM verification. "
+            "pycryptodome is required for card CMAC verification. "
             "Install it with: pip install pycryptodome"
         )
 
 
 @dataclass
-class SDMVerificationResult:
+class FKVerificationResult:
     card_uid: str
-    read_counter: int
 
 
-def verify_sdm_token(token: str, card_lookup) -> SDMVerificationResult:
+def verify_fk_token(token: str, card_lookup) -> FKVerificationResult:
     """
-    Verify a DESFire EV3 SDM token.
+    Verify a DESFire EV3 physical card CMAC token.
 
-    Expected format: SDM:<picc_data_hex>.<read_ctr_hex>.<sdm_mac_hex>
+    Expected format: FK:<uid_hex_14>.<cmac_hex_16>
 
     card_lookup: callable(uid_hex) -> NFCCard  (raises DoesNotExist on failure)
 
     Steps:
-      1. Decrypt PICCData to extract UID and read counter
-      2. Look up the card and retrieve its AES key
-      3. Verify SDMMAC
-      4. Check counter > last_sdm_counter (anti-replay)
-      5. Update last_sdm_counter
+      1. Parse UID and received CMAC from the token
+      2. Look up the card and retrieve its read AES key
+      3. Recompute AES-CMAC(readKey, uid_bytes), truncate with NXP method
+      4. Constant-time compare
     """
-    if not token.startswith("SDM:"):
-        raise ValueError("Format de token SDM invalide.")
+    if not token.startswith("FK:"):
+        raise ValueError("Format de token FK invalide.")
 
-    body = token[4:]
+    body = token[3:]
     parts = body.split(".")
-    if len(parts) != 3:
-        raise ValueError("Format de token SDM invalide (attendu: picc.ctr.mac).")
+    if len(parts) != 2:
+        raise ValueError("Format de token FK invalide (attendu: uid.cmac).")
 
-    picc_hex, ctr_hex, mac_hex = parts
+    uid_hex, mac_hex = parts
+
+    if len(uid_hex) != 14:
+        raise ValueError("UID invalide (attendu: 7 octets / 14 hex).")
+    if len(mac_hex) != 16:
+        raise ValueError("CMAC invalide (attendu: 8 octets / 16 hex).")
 
     try:
-        picc_data = bytes.fromhex(picc_hex)
-        received_ctr = int(ctr_hex, 16)
+        uid_bytes = bytes.fromhex(uid_hex)
         received_mac = bytes.fromhex(mac_hex)
     except ValueError:
-        raise ValueError("Données SDM mal formatées (hex invalide).")
-
-    # Decrypt PICCData: first 16 bytes = AES-CBC encrypted (IV=0) containing UID(7) + counter(3) + padding
-    # The decryption key is the SDM meta-read key; for simplicity we use
-    # the same key stored on the card record. In production the PICCData
-    # encryption key may differ from the MAC key.
-    # We'll do a two-pass lookup: first try to find the card by the read counter
-    # and MAC, but since PICCData is encrypted we need to try known cards.
-    # In practice, the picc_data first byte after decryption reveals the UID
-    # which maps to exactly one card.
-
-    # For the initial implementation, we expect the POS to also send
-    # the physical_card_token alongside the SDM token so we can look up the key.
-    # Alternatively, we try all active SDM cards (small set in a university).
-
-    # Simplified flow: extract UID from unencrypted part if SDM is configured
-    # with PICCData in plain (SDMMirror without encryption, UID mirroring).
-    # Many real deployments use plaintext UID + encrypted counter + CMAC.
-
-    # Here we support the common NXP AN12196 format:
-    # NDEF content = "SDM:<UID_hex_14>.<ReadCtr_hex_6>.<SDMMAC_hex_16>"
-    uid_hex = picc_hex
-    if len(uid_hex) != 14:
-        raise ValueError("UID SDM invalide (attendu: 7 octets / 14 hex).")
+        raise ValueError("Données FK mal formatées (hex invalide).")
 
     try:
         nfc_card = card_lookup(uid_hex)
@@ -213,29 +179,19 @@ def verify_sdm_token(token: str, card_lookup) -> SDMVerificationResult:
         raise ValueError("Carte physique inconnue.")
 
     if not nfc_card.sdm_aes_key:
-        raise ValueError("Carte non configurée pour SDM.")
+        raise ValueError("Carte non configurée (clé AES manquante).")
 
     aes_key = bytes.fromhex(nfc_card.sdm_aes_key)
 
-    # Recompute SDMMAC = AES-CMAC(key, UID || ReadCtr) truncated to 8 bytes
-    uid_bytes = bytes.fromhex(uid_hex)
-    ctr_bytes = struct.pack("<I", received_ctr)[:3]  # 3-byte LE counter
-    mac_input = uid_bytes + ctr_bytes
-    full_mac = _aes_cmac(aes_key, mac_input)
+    # Recompute CMAC = AES-CMAC(readKey, uid_bytes) truncated to 8 bytes
+    full_mac = _aes_cmac(aes_key, uid_bytes)
     # NXP truncation: take every other byte starting at index 1
     truncated_mac = bytes([full_mac[i] for i in range(1, 16, 2)])
 
     if not hmac.compare_digest(truncated_mac, received_mac):
-        raise ValueError("CMAC SDM invalide - carte potentiellement contrefaite.")
+        raise ValueError("CMAC invalide - carte potentiellement contrefaite.")
 
-    if received_ctr <= nfc_card.last_sdm_counter:
-        raise ValueError("Compteur SDM invalide - rejeu détecté.")
-
-    nfc_card.last_sdm_counter = received_ctr
     nfc_card.last_accessed = __import__("django.utils.timezone", fromlist=["now"]).now()
-    nfc_card.save(update_fields=["last_sdm_counter", "last_accessed"])
+    nfc_card.save(update_fields=["last_accessed"])
 
-    return SDMVerificationResult(
-        card_uid=uid_hex,
-        read_counter=received_ctr,
-    )
+    return FKVerificationResult(card_uid=uid_hex)
