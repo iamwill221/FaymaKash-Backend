@@ -225,6 +225,10 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 HCE_SECRET_KEY = os.getenv('HCE_SECRET_KEY', SECRET_KEY)
 HCE_TOKEN_LIFETIME_SECONDS = 30
 
+# AES-128 system master key for DESFire card key diversification (32 hex chars).
+# Only sent to manager devices at login so they can authenticate physical cards.
+NFC_SYSTEM_MASTER_KEY = os.getenv('NFC_SYSTEM_MASTER_KEY', '')
+
 # CSRF - Domaines de confiance pour la production
 CSRF_TRUSTED_ORIGINS = [
     os.getenv('BASE_DOMAIN', ''),  # ex: "https://votre-domaine.com"

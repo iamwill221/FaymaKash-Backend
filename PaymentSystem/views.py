@@ -1,4 +1,5 @@
 from datetime import datetime
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import render
 from django.utils import timezone
@@ -83,6 +84,13 @@ class PhoneNumberPincodeLoginView(APIView):
 
             if user.user_type == UserType.CLIENT:
                 response_data['nfc_card_state'] = user.nfc_card.is_active if hasattr(user, 'nfc_card') else None
+
+            # Send the NFC system master key to managers so they can
+            # authenticate physical DESFire cards via the Flutter app.
+            if user.user_type == UserType.MANAGER:
+                nfc_key = getattr(settings, 'NFC_SYSTEM_MASTER_KEY', '')
+                if nfc_key:
+                    response_data['nfc_key'] = nfc_key
 
             return Response(response_data, status=status.HTTP_200_OK)
         return Response({'error': 'Identifiants invalides'}, status=status.HTTP_401_UNAUTHORIZED)
