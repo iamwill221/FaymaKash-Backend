@@ -135,12 +135,15 @@ AUTH_PASSWORD_VALIDATORS = [
     # },
 ]
 
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Set TIME_ZONE from environment variable, default to UTC
+# To use Japan time, set the environment variable DJANGO_TIME_ZONE=Asia/Tokyo
+TIME_ZONE = os.getenv('DJANGO_TIME_ZONE', 'UTC')
 
 USE_I18N = True
 
